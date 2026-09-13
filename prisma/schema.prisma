@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Mini Golf leaderboard — one row per completed full game (all 8 holes).
+model Score {
+  id          String   @id @default(cuid())
+  playerName  String
+  totalStrokes Int
+  par         Int
+  // vs-par score (negative = under par). Stored for sorting best-first.
+  diff        Int
+  // JSON array of per-hole strokes, e.g. [1,3,4,5,3,4,4,4]
+  holeStrokes String
+  holesPlayed Int
+  createdAt   DateTime @default(now())
+
+  @@index([diff])
+  @@index([totalStrokes])
+}
