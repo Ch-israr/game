@@ -40,7 +40,7 @@ const STEPS: TutorialStep[] = [
   {
     icon: Trophy,
     title: "Earn Achievements",
-    body: "Sink putts, score birdies, and complete all 14 holes to unlock achievements. Check the Awards screen from the menu!",
+    body: "Sink putts, score birdies, and complete all 17 holes to unlock achievements. Check the Awards screen from the menu!",
     highlight: "controls",
   },
 ];

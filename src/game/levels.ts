@@ -49,7 +49,10 @@ export const LEVELS: CourseDef[] = [
     hint: "A central wall blocks the straight shot. Bank off the rails or go around.",
     walls: [
       ...boundaryWalls(8, 20),
-      { pos: [0, 0.6, 0], size: [8, 1.2, 0.6], color: "#5b4636" },
+      // Central wall blocks the straight shot but leaves a gap at each end —
+      // bank off the rails or go around. (Was full-width: the hole was
+      // unreachable, since the wall spanned the whole fairway.)
+      { pos: [0, 0.6, 0], size: [6.4, 1.2, 0.6], color: "#5b4636" },
       { pos: [2.3, 0.5, -5], size: [2.4, 1, 0.4], color: "#5b4636" },
     ],
     ramps: [],
@@ -507,6 +510,168 @@ export const LEVELS: CourseDef[] = [
       },
     ],
     conveyors: [],
+  },
+
+  // ---------------------------------------------------------------- Level 15
+  {
+    id: 15,
+    name: "The Grand Loop",
+    subtitle: "Round the island to the cup",
+    par: 5,
+    teePos: [0, 0.11, 11.5],
+    holePos: [0, 0, 0],
+    bounds: { width: 12, length: 26 },
+    accent: "#a3e635",
+    hint: "The cup sits inside a walled island — only the north gate is open. Loop around the outside to reach it; the side conveyors will carry you north.",
+    walls: [
+      ...boundaryWalls(12, 26),
+      // Cross-wall south of the island: gaps only at the far left/right edges,
+      // so the ball must loop around the sides instead of going straight.
+      { pos: [0, 0.6, 5], size: [9.2, 1.2, 0.6], color: "#5b4636" },
+      // Central island around the hole: solid on south/west/east, north gate open.
+      { pos: [0, 0.6, 2.5], size: [5, 1.2, 0.5], color: "#5b4636" },
+      { pos: [-2.5, 0.6, 0], size: [0.5, 1.2, 5], color: "#5b4636" },
+      { pos: [2.5, 0.6, 0], size: [0.5, 1.2, 5], color: "#5b4636" },
+      { pos: [-1.65, 0.6, -2.5], size: [1.7, 1.2, 0.5], color: "#5b4636" },
+      { pos: [1.65, 0.6, -2.5], size: [1.7, 1.2, 0.5], color: "#5b4636" },
+    ],
+    ramps: [],
+    movingPlatforms: [],
+    waterHazards: [
+      // Pools flanking the north gate — the centre lane into the gate is safe.
+      { pos: [-2.2, 0, -4.2], size: [1.8, 1.8], color: "#0c4a6e" },
+      { pos: [2.2, 0, -4.2], size: [1.8, 1.8], color: "#0c4a6e" },
+    ],
+    sandTraps: [{ pos: [0, 0, 8.5], size: [2.5, 2], color: "#e0c074" }],
+    bumpers: [
+      { pos: [-4.5, 0, -9.5], radius: 0.4, height: 0.8, color: "#f43f5e" },
+      { pos: [4.5, 0, -9.5], radius: 0.4, height: 0.8, color: "#f59e0b" },
+    ],
+    windZones: [],
+    teleporters: [],
+    windmills: [],
+    conveyors: [
+      // Side channels push the ball north around the loop.
+      { pos: [-4.4, 0, 0], size: [2.6, 0.04, 14], speed: -2, color: "#a3e635" },
+      { pos: [4.4, 0, 0], size: [2.6, 0.04, 14], speed: -2, color: "#a3e635" },
+    ],
+  },
+
+  // ---------------------------------------------------------------- Level 16
+  {
+    id: 16,
+    name: "Sky Terraces",
+    subtitle: "Climb three terraces to the cup",
+    par: 5,
+    teePos: [0, 0.11, 10.5],
+    // Hole sits on the top terrace (y = 1.8); the cup visuals use holePos[1].
+    holePos: [0, 1.8, -8.5],
+    bounds: { width: 10, length: 24 },
+    accent: "#fb7185",
+    hint: "Climb three terraces — each ramp lifts you to the next. Fall off and you'll have to climb again; the water below is not forgiving.",
+    walls: [
+      ...boundaryWalls(10, 24),
+      // Guard walls on the middle terrace (top y = 1.2), open at the south
+      // (ramp in) and north (ramp out) ends.
+      { pos: [-2, 1.6, -2], size: [0.4, 0.8, 4], color: "#5b4636" },
+      { pos: [2, 1.6, -2], size: [0.4, 0.8, 4], color: "#5b4636" },
+      // Guard walls on the top terrace (top y = 1.8), open at the south
+      // (ramp in) end only.
+      { pos: [-2, 2.2, -8.5], size: [0.4, 0.8, 3], color: "#5b4636" },
+      { pos: [2, 2.2, -8.5], size: [0.4, 0.8, 3], color: "#5b4636" },
+      { pos: [0, 2.2, -10], size: [4.4, 0.8, 0.4], color: "#5b4636" },
+    ],
+    ramps: [
+      // Ground (0) -> terrace 1 (top 0.6)
+      { pos: [0, 0, 7], size: [3, 0.6, 3], rotationY: 0, color: "#c8854a" },
+      // Terrace 1 (0.6) -> terrace 2 (top 1.2)
+      { pos: [0, 0.6, 0.5], size: [3, 0.6, 3], rotationY: 0, color: "#c8854a" },
+      // Terrace 2 (1.2) -> terrace 3 (top 1.8)
+      { pos: [0, 1.2, -5.5], size: [3, 0.6, 3], rotationY: 0, color: "#c8854a" },
+    ],
+    // Terraces are static moving platforms (distance 0): their flat tops are
+    // the only raised floors the physics engine supports.
+    movingPlatforms: [
+      { pos: [0, 0.1, 4], size: [4, 0.5, 4], axis: "x", distance: 0, speed: 1, phase: 0, color: "#0e7490" },
+      { pos: [0, 0.7, -2], size: [4, 0.5, 4], axis: "x", distance: 0, speed: 1, phase: 0, color: "#0e7490" },
+      { pos: [0, 1.3, -8.5], size: [4, 0.5, 3], axis: "x", distance: 0, speed: 1, phase: 0, color: "#0e7490" },
+    ],
+    waterHazards: [
+      // Ground-level pools beside the climb — falling off a terrace here costs a stroke.
+      { pos: [-3.8, 0, 1], size: [1.6, 8], color: "#0c4a6e" },
+      { pos: [3.8, 0, -3], size: [1.6, 8], color: "#0c4a6e" },
+    ],
+    sandTraps: [],
+    bumpers: [
+      { pos: [-2.5, 0, 8], radius: 0.4, height: 0.8, color: "#f43f5e" },
+      { pos: [2.5, 0, -6], radius: 0.4, height: 0.8, color: "#f59e0b" },
+    ],
+    windZones: [],
+    teleporters: [],
+    windmills: [],
+    conveyors: [],
+  },
+
+  // ---------------------------------------------------------------- Level 17
+  {
+    id: 17,
+    name: "Flipper Frenzy",
+    subtitle: "Pinball chaos at the cup",
+    par: 5,
+    teePos: [0, 0.11, 10.5],
+    holePos: [0, 0, -10.5],
+    bounds: { width: 10, length: 24 },
+    accent: "#ef4444",
+    hint: "Pinball chaos — bumpers, a spinner and two flippers guard the cup. The side lanes are the safe way round the water; the middle is a gamble.",
+    walls: [
+      ...boundaryWalls(10, 24),
+      // Guide walls separating the centre bumper field from the side lanes.
+      { pos: [-2.2, 0.5, 3], size: [0.5, 1, 6], color: "#5b4636" },
+      { pos: [2.2, 0.5, 3], size: [0.5, 1, 6], color: "#5b4636" },
+    ],
+    ramps: [],
+    movingPlatforms: [
+      // "Flippers": fast shuttling platforms guarding the water in front of
+      // the cup. They meet at the centre but never overlap.
+      { pos: [-1.3, 0.05, -7.5], size: [1.5, 0.3, 0.9], axis: "x", distance: 0.55, speed: 4.5, phase: 0, color: "#dc2626" },
+      { pos: [1.3, 0.05, -7.5], size: [1.5, 0.3, 0.9], axis: "x", distance: 0.55, speed: 4.5, phase: Math.PI, color: "#dc2626" },
+    ],
+    waterHazards: [
+      // The drain: guards the direct route to the cup — go around via the sides.
+      { pos: [0, 0, -8.5], size: [3, 1.6], color: "#0c4a6e" },
+    ],
+    sandTraps: [
+      // Outlanes: slow the ball if it drifts wide up north.
+      { pos: [-4.3, 0, -7], size: [1.2, 6], color: "#e0c074" },
+      { pos: [4.3, 0, -7], size: [1.2, 6], color: "#e0c074" },
+    ],
+    bumpers: [
+      { pos: [-1.1, 0, 5], radius: 0.42, height: 0.85, color: "#f43f5e" },
+      { pos: [1.1, 0, 5], radius: 0.42, height: 0.85, color: "#f59e0b" },
+      { pos: [0, 0, 3], radius: 0.42, height: 0.85, color: "#f43f5e" },
+      { pos: [-1.1, 0, 1], radius: 0.42, height: 0.85, color: "#f59e0b" },
+      { pos: [1.1, 0, 1], radius: 0.42, height: 0.85, color: "#f43f5e" },
+      { pos: [-2, 0, -4.5], radius: 0.38, height: 0.8, color: "#f59e0b" },
+      { pos: [2, 0, -4.5], radius: 0.38, height: 0.8, color: "#f43f5e" },
+    ],
+    windZones: [],
+    teleporters: [],
+    windmills: [
+      // The spinner in the middle of the table.
+      {
+        pos: [0, 0, -1.5],
+        bladeLength: 2.4,
+        bladeWidth: 0.45,
+        bladeHeight: 0.45,
+        rpm: 12,
+        color: "#dc2626",
+      },
+    ],
+    conveyors: [
+      // Side lanes carry the ball north, around the water, to the cup.
+      { pos: [-3.2, 0, 1], size: [1.8, 0.04, 12], speed: -2.5, color: "#fbbf24" },
+      { pos: [3.2, 0, 1], size: [1.8, 0.04, 12], speed: -2.5, color: "#fbbf24" },
+    ],
   },
 ];
 

@@ -182,7 +182,7 @@ export function SettingsPanel() {
             </div>
 
             <div className="border-t border-slate-100 px-5 py-3 text-center text-[10px] text-slate-400">
-              Mini Golf 3D · 14 holes · Made with React Three Fiber
+              Mini Golf 3D · 17 holes · Made with React Three Fiber
             </div>
           </motion.div>
         </motion.div>

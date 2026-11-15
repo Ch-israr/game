@@ -28,7 +28,7 @@ model Post {
   updatedAt DateTime @updatedAt
 }
 
-// Mini Golf leaderboard — one row per completed full game (all 8 holes).
+// Mini Golf leaderboard — one row per completed full game (all holes).
 model Score {
   id          String   @id @default(cuid())
   playerName  String

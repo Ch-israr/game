@@ -99,7 +99,7 @@ export function LeaderboardScreen() {
               No scores yet
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Be the first to complete all 14 holes!
+              Be the first to complete all 17 holes!
             </p>
             <Button
               className="mt-4 gap-2 rounded-xl bg-emerald-600 font-bold hover:bg-emerald-700"

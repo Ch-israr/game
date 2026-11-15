@@ -71,7 +71,7 @@ export function StartScreen() {
           transition={{ delay: 0.22 }}
           className="mt-2 text-center text-sm text-slate-600 sm:text-base"
         >
-          Putt, bounce and fly across 14 tricky courses. Aim with a flick, master the hazards, sink the cup.
+          Putt, bounce and fly across 17 tricky courses. Aim with a flick, master the hazards, sink the cup.
         </motion.p>
 
         {/* Feature pills */}
@@ -214,7 +214,7 @@ export function StartScreen() {
             </Button>
           </div>
           <div className="flex items-center justify-center gap-1 text-xs text-slate-500">
-            <Trophy className="h-3.5 w-3.5" /> 14 holes · <Volume2 className="h-3.5 w-3.5" /> sound · mobile &amp; touch friendly
+            <Trophy className="h-3.5 w-3.5" /> 17 holes · <Volume2 className="h-3.5 w-3.5" /> sound · mobile &amp; touch friendly
           </div>
         </motion.div>
       </div>

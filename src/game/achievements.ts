@@ -14,11 +14,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "eagle", name: "Eagle Eye", description: "Score an Eagle (2 under par)", icon: "🦅" },
   { id: "birdie", name: "Birdie", description: "Score a Birdie (1 under par)", icon: "🐦" },
   { id: "three_birdies", name: "Birdie Streak", description: "Score 3 birdies or better in one round", icon: "🔥" },
-  { id: "all_par", name: "Course Pro", description: "Finish all 14 holes at par or better", icon: "⛳" },
-  { id: "sub_30", name: "Speed Golfer", description: "Complete all 14 holes in under 42 strokes", icon: "⚡" },
+  { id: "all_par", name: "Course Pro", description: "Finish all 17 holes at par or better", icon: "⛳" },
+  { id: "sub_30", name: "Speed Golfer", description: "Complete all 17 holes in under 57 strokes", icon: "⚡" },
   { id: "water_survivor", name: "Splash Survivor", description: "Hit water but still finish the hole", icon: "🌊" },
   { id: "halfway", name: "Halfway There", description: "Complete 6 holes in one round", icon: "🎯" },
-  { id: "finisher", name: "Course Finisher", description: "Complete all 14 holes", icon: "🏁" },
+  { id: "finisher", name: "Course Finisher", description: "Complete all 17 holes", icon: "🏁" },
 ];
 
 const STORAGE_KEY = "mg_achievements_unlocked";
@@ -66,7 +66,7 @@ export function checkAchievements(ctx: AchievementContext): Achievement[] {
     (r) => r.strokes < r.par
   ).length;
   const allParOrBetter =
-    completedCount >= 14 && ctx.results.every((r) => r.strokes <= r.par);
+    completedCount >= 17 && ctx.results.every((r) => r.strokes <= r.par);
   const lastHole = ctx.results[ctx.results.length - 1];
 
   if (completedCount >= 1) grant(ACHIEVEMENTS[0]); // first_sink
@@ -77,10 +77,10 @@ export function checkAchievements(ctx: AchievementContext): Achievement[] {
   }
   if (birdiesOrBetter >= 3) grant(ACHIEVEMENTS[4]); // three_birdies
   if (allParOrBetter) grant(ACHIEVEMENTS[5]); // all_par
-  if (completedCount >= 14 && ctx.totalStrokes < 42) grant(ACHIEVEMENTS[6]); // sub_36
+  if (completedCount >= 17 && ctx.totalStrokes < 57) grant(ACHIEVEMENTS[6]); // sub_36
   if (ctx.hitWaterThisHole && lastHole) grant(ACHIEVEMENTS[7]); // water_survivor
   if (completedCount >= 7) grant(ACHIEVEMENTS[8]); // halfway
-  if (completedCount >= 14) grant(ACHIEVEMENTS[9]); // finisher
+  if (completedCount >= 17) grant(ACHIEVEMENTS[9]); // finisher
 
   if (newly.length > 0) saveUnlocked(unlocked);
   return newly;

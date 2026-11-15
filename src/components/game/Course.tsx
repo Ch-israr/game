@@ -482,8 +482,9 @@ export function Course({ course }: { course: CourseDef }) {
       </mesh>
       {/* Fairway top surface with mowing-stripe texture */}
       <FairwaySurface width={bounds.width} length={bounds.length} accent={course.accent} />
-      {/* Lighter green ring around hole (the "green") */}
-      <mesh position={[course.holePos[0], 0.106, course.holePos[2]]} receiveShadow>
+      {/* Lighter green ring around hole (the "green") — sits on the hole's
+          surface height, so elevated holes (Sky Terraces) render correctly. */}
+      <mesh position={[course.holePos[0], course.holePos[1] + 0.106, course.holePos[2]]} receiveShadow>
         <circleGeometry args={[1.6, 36]} />
         <meshStandardMaterial color="#5a9a48" roughness={0.75} />
       </mesh>
@@ -498,17 +499,17 @@ export function Course({ course }: { course: CourseDef }) {
         <meshStandardMaterial color="#e5e7eb" emissive="#9ca3af" emissiveIntensity={0.2} />
       </mesh>
       {/* Hole (cup) with inner depth */}
-      <mesh position={[course.holePos[0], 0.04, course.holePos[2]]}>
+      <mesh position={[course.holePos[0], course.holePos[1] + 0.04, course.holePos[2]]}>
         <cylinderGeometry args={[0.34, 0.32, 0.2, 28]} />
         <meshStandardMaterial color="#0a0a0a" roughness={1} side={THREE.DoubleSide} />
       </mesh>
       {/* Hole rim */}
-      <mesh position={[course.holePos[0], 0.108, course.holePos[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[course.holePos[0], course.holePos[1] + 0.108, course.holePos[2]]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.34, 0.4, 28]} />
         <meshStandardMaterial color="#1a1a1a" roughness={1} />
       </mesh>
       {/* Flag pole + flag */}
-      <group position={[course.holePos[0], 0, course.holePos[2]]}>
+      <group position={[course.holePos[0], course.holePos[1], course.holePos[2]]}>
         <mesh position={[0, 1.1, 0]} castShadow>
           <cylinderGeometry args={[0.025, 0.025, 2.2, 8]} />
           <meshStandardMaterial color="#e5e7eb" metalness={0.7} roughness={0.25} />
