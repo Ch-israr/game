@@ -5,7 +5,11 @@
 services:
   - type: web
     name: minigolf-3d
-    region: singapore
+    # Oregon: same region as TwitterDown and ClearMark, which both serve
+    # fine. The Singapore instance of this service stayed 502 despite a
+    # clean build, Live status and a listening server, so it is being
+    # recreated here (2026-11-16).
+    region: oregon
     plan: free
     env: node
     # npm install --include=dev: the build needs devDependencies
