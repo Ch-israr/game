@@ -1,0 +1,28 @@
+# Render Blueprint for Mini Golf 3D (Next.js 16, standalone output).
+# Apply from the Render dashboard (New + -> Blueprint) or via the
+# "New Web Service" flow — Render picks up this file automatically.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: minigolf-3d
+    region: singapore
+    plan: free
+    env: node
+    # npm install (no package-lock.json committed — the repo uses bun.lock).
+    # prisma generate builds the client the scores API imports; db push
+    # makes sure the SQLite schema exists in the committed db/custom.db
+    # (no-op if already applied).
+    buildCommand: npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run build
+    # Next.js standalone server (see next.config.ts output: "standalone").
+    # It binds to Render's $PORT automatically — do not set PORT here.
+    startCommand: node .next/standalone/server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      # SQLite file committed in the repo (db/custom.db). Scores reset on
+      # each fresh deploy since Render's filesystem is ephemeral on free.
+      - key: DATABASE_URL
+        value: file:./db/custom.db
