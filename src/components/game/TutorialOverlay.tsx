@@ -22,7 +22,7 @@ const STEPS: TutorialStep[] = [
   {
     icon: Gauge,
     title: "Power & Distance",
-    body: "Watch the power meter at the bottom — green = soft, yellow = medium, red = max power. Pull farther to reach distant holes.",
+    body: "Watch the power meter on the right — green = soft, yellow = medium, red = max power. Pull farther to reach distant holes.",
     highlight: "power",
   },
   {
@@ -57,8 +57,12 @@ export function TutorialOverlay() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          // Tapping anywhere outside the card dismisses the tutorial at
+          // press time (pointerdown, not click): a drag that starts on the
+          // backdrop used to wait for a click that a drag never fires, so
+          // the first putt attempt was swallowed by the modal.
           className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-          onClick={() => setTutorialStep(-1)}
+          onPointerDown={() => setTutorialStep(-1)}
         >
           <motion.div
             initial={{ scale: 0.9, y: 20, opacity: 0 }}
@@ -66,6 +70,7 @@ export function TutorialOverlay() {
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ type: "spring", stiffness: 240, damping: 22 }}
             className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header with step indicator */}
