@@ -6,18 +6,18 @@ import { getDifficultyConfig } from "./difficulty";
 export const BALL_RADIUS = 0.2;
 export const GRAVITY = 26;
 export const GROUND_FRICTION = 2.0; // deceleration on grass (units/s^2)
-export const SAND_FRICTION = 7.5;
+export const SAND_FRICTION = 4.5; // sand slows the ball but no longer kills a full putt
 export const AIR_DRAG = 0.15;
-export const WALL_RESTITUTION = 0.62;
-export const GROUND_RESTITUTION = 0.28; // small bounce on landing
-export const BUMPER_RESTITUTION = 1.15; // bumpers add a little energy
+export const WALL_RESTITUTION = 0.62; // kept: lower values break the bank-shot routes on L2/L8 (solver-verified)
+export const BUMPER_RESTITUTION = 0.9; // bumpers return most energy, never add any
 export const REST_SPEED = 0.16; // below this speed, ball can come to rest
 export const REST_FRAMES = 8; // consecutive slow frames before stopping
 export const HOLE_RADIUS = 0.38;
-export const HOLE_CAPTURE_SPEED = 6;
-export const HOLE_ATTRACT_RADIUS = 1.0;
+export const HOLE_CAPTURE_SPEED = 4; // a putt must arrive at a makeable pace
+export const HOLE_ATTRACT_RADIUS = 0.6;
 export const MAX_SHOT_SPEED = 15;
-export const SPIN_FORCE = 6.5; // Magnus side-force coefficient for curved shots
+export const SPIN_FORCE = 4.0; // Magnus side-force coefficient for curved shots
+export const WINDMILL_MAX_SPEED = 6; // a windmill hit never launches the ball faster than this
 export const PLATFORM_TOP_Y_OFFSET = 0; // platforms store their top in pos.y + size.y
 
 // ---- Helpers ------------------------------------------------------------
@@ -159,7 +159,7 @@ export function stepBall(
   }
   // gentle attraction when slow & near the cup
   if (holeDist < HOLE_ATTRACT_RADIUS && speed < HOLE_CAPTURE_SPEED * 1.6) {
-    const pull = (1 - holeDist / HOLE_ATTRACT_RADIUS) * 6;
+    const pull = (1 - holeDist / HOLE_ATTRACT_RADIUS) * 2.5;
     ball.vx -= (ddx / (holeDist || 1)) * pull * dt;
     ball.vz -= (ddz / (holeDist || 1)) * pull * dt;
   }
@@ -172,19 +172,16 @@ export function stepBall(
     // Snap to surface
     ball.y = surf.height + BALL_RADIUS;
     const n = surf.normal;
+    // Rolling contact: always project velocity onto the tangent plane,
+    // removing the normal component regardless of sign. Previously only
+    // the into-surface component was removed (with a small bounce), so a
+    // ball that landed with a little upward speed kept vy ≈ +0.65
+    // forever: speed stayed above REST_SPEED, restFrames never counted,
+    // and the ball never came to rest (soft-lock — no next shot).
     const vn = ball.vx * n[0] + ball.vy * n[1] + ball.vz * n[2];
-    if (vn < 0) {
-      // remove into-surface component, apply small bounce
-      const bounce = Math.abs(vn) * GROUND_RESTITUTION;
-      ball.vx -= (1 + GROUND_RESTITUTION) * vn * n[0];
-      ball.vy -= (1 + GROUND_RESTITUTION) * vn * n[1];
-      ball.vz -= (1 + GROUND_RESTITUTION) * vn * n[2];
-      if (bounce < 0.4) {
-        // kill residual vertical jitter to keep it rolling
-        ball.vy = 0;
-      }
-      void bounce;
-    }
+    ball.vx -= vn * n[0];
+    ball.vy -= vn * n[1];
+    ball.vz -= vn * n[2];
 
     // Tangential gravity (slope acceleration along surface)
     const gn = 0 * n[0] + -GRAVITY * n[1] + 0 * n[2];
@@ -196,11 +193,9 @@ export function stepBall(
     ball.vz += az * dt;
     // remove the normal component that tangential gravity may have re-introduced
     const vn2 = ball.vx * n[0] + ball.vy * n[1] + ball.vz * n[2];
-    if (vn2 < 0) {
-      ball.vx -= vn2 * n[0];
-      ball.vy -= vn2 * n[1];
-      ball.vz -= vn2 * n[2];
-    }
+    ball.vx -= vn2 * n[0];
+    ball.vy -= vn2 * n[1];
+    ball.vz -= vn2 * n[2];
 
     // Friction (sand is much higher) — scaled by difficulty
     const dc = getDifficultyConfig();
@@ -250,8 +245,13 @@ export function stepBall(
     // Conveyor belt push (grounded only — drags the ball along its forward axis)
     for (const cv of course.conveyors) {
       if (inRect(ball.x, ball.z, cv.pos[0], cv.pos[2], cv.size[0], cv.size[2])) {
-        // Apply a velocity-aligned push (impulse-style so it overpowers friction)
-        ball.vz += cv.speed * dt * 3.0;
+        // Drag the ball's z-velocity toward the belt speed and never
+        // beyond it. Previously a constant acceleration (cv.speed * dt *
+        // 3.0) stacked on top of the ball's own speed, so a resting ball
+        // reached ~2x the belt speed.
+        const dv = cv.speed - ball.vz;
+        const maxDelta = 6.0 * dt; // belt accel rate (u/s^2)
+        ball.vz += Math.abs(dv) <= maxDelta ? dv : Math.sign(dv) * maxDelta;
         break;
       }
     }
@@ -424,11 +424,10 @@ export function stepBall(
       if (vn < 0) {
         ball.vx -= (1 + bumperRest) * vn * nx;
         ball.vz -= (1 + bumperRest) * vn * nz;
-      } else {
-        // add a kick even if glancing
-        ball.vx += nx * 1.5;
-        ball.vz += nz * 1.5;
       }
+      // No extra kick for glancing contact: bumpers return energy, they
+      // never add it (the old +1.5 u/s kick turned a 3.0 u/s tap into a
+      // 3.76 u/s launch).
       events.bumperHit = true;
     }
   }
@@ -461,28 +460,49 @@ export function stepBall(
         lz < wm.bladeWidth / 2 + BALL_RADIUS &&
         ball.y < wm.bladeHeight + BALL_RADIUS
       ) {
-        // collision — push ball out along the blade's outward normal and add
-        // a tangential kick from the rotation.
-        // Outward direction from hub = (bc, -bs) in world... actually blade
-        // local +x maps to world (bc, -bs) wait: world = R(ba) * local, so
-        // local +x -> world (cos(ba), -sin(ba))... let's just use the radial dir.
+        // Collision: one kick per contact, never a runaway.
+        // - Push the ball out along the blade's thickness normal (blade
+        //   local +z in world coords) so the contact ends this step.
+        // - Impart the blade's tangential speed at the contact radius as
+        //   a single impulse: the blade drags the ball up to its own
+        //   speed, it does not add a full velocity increment every step
+        //   (the old code added omega*r*0.6 per step with no dt scaling,
+        //   flinging a parked ball to ~14 u/s).
+        // - Hard-cap the resulting speed so a windmill hit knocks the
+        //   ball aside firmly but never launches it across the course.
         const radialLen = Math.hypot(rx, rz) || 0.0001;
         const nx = rx / radialLen;
         const nz = rz / radialLen;
-        const pen = BALL_RADIUS + 0.05 - Math.abs(lz) + 0.02;
-        ball.x += nx * Math.max(0, pen);
-        ball.z += nz * Math.max(0, pen);
+        // blade local +z maps to world (-sin(ba), cos(ba))
+        const nnx = -bs;
+        const nnz = bc;
+        const pushDir = lz >= 0 ? 1 : -1;
+        const pen =
+          wm.bladeWidth / 2 + BALL_RADIUS - Math.abs(lz) + 0.02;
+        ball.x += nnx * pushDir * Math.max(0, pen);
+        ball.z += nnz * pushDir * Math.max(0, pen);
         // tangential velocity from rotation: v = omega × r (in XZ plane, 2D)
         const omega = (wm.rpm * 2 * Math.PI) / 60; // rad/s
-        const tangX = -nz * omega * radialLen * 0.6;
-        const tangZ = nx * omega * radialLen * 0.6;
-        ball.vx += tangX;
-        ball.vz += tangZ;
-        // also reflect existing velocity a bit
+        const tangX = -nz;
+        const tangZ = nx;
+        const bladeT = omega * radialLen; // blade surface speed here
+        const ballT = ball.vx * tangX + ball.vz * tangZ;
+        const targetT = Math.min(bladeT, WINDMILL_MAX_SPEED);
+        if (ballT < targetT) {
+          ball.vx += tangX * (targetT - ballT);
+          ball.vz += tangZ * (targetT - ballT);
+        }
+        // also reflect existing velocity a bit (radial / into-blade part)
         const vn = ball.vx * nx + ball.vz * nz;
         if (vn < 0) {
           ball.vx -= (1 + 0.5) * vn * nx;
           ball.vz -= (1 + 0.5) * vn * nz;
+        }
+        // hard cap on total horizontal speed after the hit
+        const sp = Math.hypot(ball.vx, ball.vz);
+        if (sp > WINDMILL_MAX_SPEED) {
+          ball.vx *= WINDMILL_MAX_SPEED / sp;
+          ball.vz *= WINDMILL_MAX_SPEED / sp;
         }
         events.wallHit = true; // reuse wall SFX
         break; // one blade hit per windmill per step is enough
@@ -531,10 +551,15 @@ export function applyShot(
   ball.restFrames = 0;
 }
 
-export function resetBall(ball: PhysicsBall, teePos: [number, number, number]) {
-  ball.x = teePos[0];
-  ball.y = teePos[1] + BALL_RADIUS;
-  ball.z = teePos[2];
+// Reset the ball to a spawn position. `pos[1]` is the PHYSICS surface
+// height under the spawn point (ground = 0) — NOT the visual tee-pad
+// height (teePos[1] = 0.11). Passing the visual height dropped the ball
+// 0.11 on spawn, which fed the soft-lock bounce; callers must pass the
+// surface height (see Ball.tsx, which uses surfaceAt for the tee).
+export function resetBall(ball: PhysicsBall, pos: [number, number, number]) {
+  ball.x = pos[0];
+  ball.y = pos[1] + BALL_RADIUS;
+  ball.z = pos[2];
   ball.vx = 0;
   ball.vy = 0;
   ball.vz = 0;
@@ -542,7 +567,7 @@ export function resetBall(ball: PhysicsBall, teePos: [number, number, number]) {
   ball.restFrames = 0;
   ball.onPlatform = null;
   ball.justTeleported = false;
-  ball.safeX = teePos[0];
-  ball.safeY = teePos[1] + BALL_RADIUS;
-  ball.safeZ = teePos[2];
+  ball.safeX = pos[0];
+  ball.safeY = pos[1] + BALL_RADIUS;
+  ball.safeZ = pos[2];
 }
