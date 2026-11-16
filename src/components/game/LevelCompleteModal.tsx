@@ -83,7 +83,10 @@ export function LevelCompleteModal() {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1, rotate: [0, -8, 8, 0] }}
-                transition={{ delay: 0.15, type: "spring", stiffness: 200 }}
+                // Keyframed rotate must use a tween: framer-motion only
+                // supports two keyframes with a spring (a spring here
+                // throws a pageerror on level complete).
+                transition={{ delay: 0.15, type: "tween", duration: 0.5, ease: "easeInOut" }}
                 className="mx-auto mb-2 text-6xl"
               >
                 {gradeEmoji(lastResult.grade)}
