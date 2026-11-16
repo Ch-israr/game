@@ -5,14 +5,19 @@ import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { useGameStore } from "@/game/store";
 import type { PhysicsBall } from "@/game/ball-state";
-import { BALL_RADIUS, SPIN_FORCE } from "@/game/physics";
+import type { CourseDef } from "@/game/types";
+import { BALL_RADIUS, stepBall, applyShot } from "@/game/physics";
 
 interface AimLineProps {
   ballRef: React.MutableRefObject<PhysicsBall | null>;
+  course: CourseDef;
 }
 
 const MIN_LEN = 0.6;
-const MAX_LEN = 4.5;
+const MAX_PREDICT_LEN = 30; // cap on the predicted rollout shown
+const SIM_DT = 1 / 60;
+const SIM_MAX_STEPS = 480; // up to 8s of simulated rollout
+const CURVE_POINTS = 30;
 
 function powerColor(p: number): string {
   // green -> yellow -> red
@@ -32,7 +37,7 @@ function powerColor(p: number): string {
   ).getStyle();
 }
 
-export function AimLine({ ballRef }: AimLineProps) {
+export function AimLine({ ballRef, course }: AimLineProps) {
   const groupRef = useRef<THREE.Group>(null);
   const shaftRef = useRef<THREE.Mesh>(null);
   const headRef = useRef<THREE.Mesh>(null);
@@ -49,7 +54,7 @@ export function AimLine({ ballRef }: AimLineProps) {
 
   const color = useMemo(() => new THREE.Color("#4ade80"), []);
 
-  useFrame(() => {
+  useFrame((state) => {
     const ball = ballRef.current;
     const group = groupRef.current;
     if (!ball || !group) return;
@@ -64,7 +69,47 @@ export function AimLine({ ballRef }: AimLineProps) {
     group.position.set(ball.x, 0.12, ball.z);
     group.rotation.y = -aimAngle;
 
-    const len = MIN_LEN + aimPower * (MAX_LEN - MIN_LEN);
+    // Predict the shot with the real engine: clone the ball, apply the
+    // aimed shot, and step it forward until it stops, sinks or splashes.
+    // The shaft then reaches the predicted stopping point (instead of a
+    // fixed power-based length that topped out at 4.5u on an 18u hole),
+    // and the curve preview follows the same simulated path — so it uses
+    // the engine's constant-friction model rather than the old 3%-per-step
+    // exponential decay that understated rollout by ~35%.
+    const sim: PhysicsBall = {
+      x: ball.x,
+      y: ball.y,
+      z: ball.z,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      spin: 0,
+      safeX: ball.x,
+      safeY: ball.y,
+      safeZ: ball.z,
+      onPlatform: null,
+      restFrames: 0,
+      justTeleported: false,
+    };
+    applyShot(sim, aimAngle, aimPower, aimSpin);
+    const baseTime = state.clock.elapsedTime;
+    const path: [number, number][] = [];
+    let t = 0;
+    for (let i = 0; i < SIM_MAX_STEPS; i++) {
+      t += SIM_DT;
+      const ev = stepBall(sim, course, baseTime + t, SIM_DT);
+      if (i % 16 === 0 && path.length < CURVE_POINTS) path.push([sim.x, sim.z]);
+      if (ev.sunk || ev.waterHit || ev.stopped) break;
+    }
+    if (path.length < CURVE_POINTS) path.push([sim.x, sim.z]);
+
+    // shaft length: endpoint projected onto the aim direction
+    const dirX = Math.sin(aimAngle);
+    const dirZ = -Math.cos(aimAngle);
+    const len = Math.min(
+      Math.max((sim.x - ball.x) * dirX + (sim.z - ball.z) * dirZ, MIN_LEN),
+      MAX_PREDICT_LEN
+    );
     if (shaftRef.current) {
       shaftRef.current.scale.z = len;
       shaftRef.current.position.z = -len / 2;
@@ -79,39 +124,23 @@ export function AimLine({ ballRef }: AimLineProps) {
     if (matRef.current) matRef.current.emissive.set(c);
     if (headMatRef.current) headMatRef.current.emissive.set(c);
 
-    // Build a curved trajectory preview when spin is significant.
-    // We simulate a lightweight version of the Magnus effect to draw the arc.
+    // Draw the simulated path as the curved trajectory preview when spin
+    // is significant (world path converted into the group's local space:
+    // local -z is the aim direction).
     if (curveRef.current) {
       const spin = aimSpin;
-      if (Math.abs(spin) > 0.08 && aimPower > 0.1) {
+      if (Math.abs(spin) > 0.08 && aimPower > 0.1 && path.length > 1) {
         curveRef.current.visible = true;
-        const speed = aimPower * 15; // approx MAX_SHOT_SPEED
-        let vx = 0;
-        let vz = -1; // forward in local space
-        let px = 0;
-        let pz = 0;
-        const pts = 30;
-        const arr = new Float32Array(pts * 3);
+        const cos = Math.cos(aimAngle);
+        const sin = Math.sin(aimAngle);
+        const arr = new Float32Array(CURVE_POINTS * 3);
         let written = 0;
-        for (let i = 0; i < pts; i++) {
-          const dt = 0.06;
-          const sp = Math.hypot(vx, vz);
-          if (sp < 0.05) break;
-          if (spin !== 0) {
-            const perpX = -vz / sp;
-            const perpZ = vx / sp;
-            const mag = spin * SPIN_FORCE * dt;
-            vx += perpX * mag;
-            vz += perpZ * mag;
-          }
-          // friction decay
-          vx *= 1 - 0.03;
-          vz *= 1 - 0.03;
-          px += vx * speed * dt;
-          pz += vz * speed * dt;
-          arr[written * 3] = px;
+        for (const [px, pz] of path) {
+          const dx = px - ball.x;
+          const dz = pz - ball.z;
+          arr[written * 3] = dx * cos + dz * sin;
           arr[written * 3 + 1] = 0;
-          arr[written * 3 + 2] = pz;
+          arr[written * 3 + 2] = -dx * sin + dz * cos;
           written++;
         }
         curveGeo.setAttribute("position", new THREE.BufferAttribute(arr, 3));
