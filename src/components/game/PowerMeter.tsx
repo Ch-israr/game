@@ -31,7 +31,9 @@ export function PowerMeter() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 40, opacity: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 24 }}
-          className="pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center px-4"
+          // Bottom-right, above the HUD button column: the old bottom-centre
+          // spot sat directly over the ball while aiming.
+          className="pointer-events-none absolute bottom-[21.5rem] right-3 z-20 w-80 max-w-[calc(100vw-1.5rem)] sm:right-4"
         >
           <div className="w-full max-w-xs rounded-2xl border border-white/40 bg-white/80 px-4 py-3 shadow-xl backdrop-blur-md dark:border-white/10 dark:bg-black/60">
             {/* Power row */}
