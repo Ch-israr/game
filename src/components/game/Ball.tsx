@@ -4,7 +4,7 @@ import { useRef, useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import type { CourseDef } from "@/game/types";
-import { stepBall, resetBall, BALL_RADIUS } from "@/game/physics";
+import { stepBall, resetBall, surfaceAt, BALL_RADIUS } from "@/game/physics";
 import type { PhysicsBall } from "@/game/ball-state";
 import { useGameStore } from "@/game/store";
 import { getSound } from "@/game/sound";
@@ -39,10 +39,17 @@ export function Ball({ ballRef, course, levelIndex }: BallProps) {
   const trailRef = useRef<THREE.Points>(null);
   const trailGeo = useMemo(() => new THREE.BufferGeometry(), []);
 
-  // Reset ball whenever the level changes
+  // Reset ball whenever the level changes. resetBall takes the physics
+  // surface height as pos[1] — the tee's surface height, not the visual
+  // tee-pad height (teePos[1] = 0.11 would drop the ball on spawn).
   useEffect(() => {
     if (ballRef.current) {
-      resetBall(ballRef.current, course.teePos);
+      const surf = surfaceAt(course, course.teePos[0], course.teePos[2], 0);
+      resetBall(ballRef.current, [
+        course.teePos[0],
+        surf.height,
+        course.teePos[2],
+      ]);
       sinkPhase.current = 0;
       trailHead.current = 0;
       trailCount.current = 0;
