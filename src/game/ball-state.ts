@@ -17,16 +17,21 @@ export interface PhysicsBall {
 }
 
 export function createBall(teePos: [number, number, number]): PhysicsBall {
+  // All tees sit on the flat ground surface (physics height 0), so the
+  // ball spawns resting at BALL_RADIUS. teePos[1] (0.11) is the visual
+  // tee-pad height, not the physics surface — adding it here dropped the
+  // ball 0.11 on spawn, which fed the soft-lock bounce (see physics.ts).
+  const y = 0.2;
   return {
     x: teePos[0],
-    y: teePos[1] + 0.2,
+    y,
     z: teePos[2],
     vx: 0,
     vy: 0,
     vz: 0,
     spin: 0,
     safeX: teePos[0],
-    safeY: teePos[1] + 0.2,
+    safeY: y,
     safeZ: teePos[2],
     onPlatform: null,
     restFrames: 0,
