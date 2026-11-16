@@ -10,9 +10,11 @@ interface CameraRigProps {
   ballRef: React.MutableRefObject<PhysicsBall | null>;
 }
 
-// Follow-view offset (angled, behind the ball) — flatter angle so the horizon
-// and sky are visible above the course for a sense of place.
-const FOLLOW_OFFSET = new THREE.Vector3(0, 9, 14);
+// Follow-view offset (angled, behind the ball) — steep enough that the
+// near boundary wall no longer hides the ball at the tee: with the old
+// (0, 9, 14) offset the sight line to the ball passed below the wall top
+// (y≈1.0) and only the ball's cap showed.
+const FOLLOW_OFFSET = new THREE.Vector3(0, 11, 12);
 const FOLLOW_LOOK = new THREE.Vector3(0, 0, -6);
 // Top-down "aim view" offset (high, looking straight down)
 const TOPDOWN_OFFSET = new THREE.Vector3(0, 20, 0.5);
