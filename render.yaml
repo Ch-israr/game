@@ -6,30 +6,21 @@ services:
   - type: web
     name: minigolf-3d
     # Oregon: same region as TwitterDown and ClearMark, which both serve
-    # fine. The Singapore instance of this service stayed 502 despite a
-    # clean build, Live status and a listening server, so it is being
-    # recreated here (2026-11-16).
+    # fine.
     region: oregon
     plan: free
-    env: node
-    # npm install --include=dev: the build needs devDependencies
-    # (@tailwindcss/postcss, tailwindcss, typescript). Plain `npm install`
-    # skips them when NODE_ENV=production is set, which failed the first
-    # deploy with "Cannot find module '@tailwindcss/postcss'".
-    # prisma generate builds the client the scores API imports; db push
-    # makes sure the SQLite schema exists in the committed db/custom.db
-    # (no-op if already applied).
-    buildCommand: npm install --include=dev && npx prisma generate && npx prisma db push --accept-data-loss && npm run build
-    # Next.js standalone server (see next.config.ts output: "standalone").
-    # It binds to Render's $PORT automatically — do not set PORT here.
-    # NOTE: do NOT set NODE_ENV in envVars — Next sets it to production
-    # itself at build and runtime, and setting it here would make npm
-    # skip devDependencies during the build (see above).
-    startCommand: node .next/standalone/server.js
+    # Docker, not native Node: the native-Node service built cleanly and
+    # reported Live but answered HTTP 502 on every request in two regions
+    # (Singapore, then Oregon), with clean logs and a listening server.
+    # TwitterDown and ClearMark both run as Docker on this account and
+    # serve fine, so this service uses the Dockerfile at the repo root.
+    env: docker
+    dockerfilePath: ./Dockerfile
+    # The Next.js standalone server binds to Render's $PORT automatically
+    # — do not set PORT here. NOTE: do NOT set NODE_ENV in envVars —
+    # Next sets it to production itself.
     healthCheckPath: /
     envVars:
-      - key: NODE_VERSION
-        value: "22"
       # SQLite file committed in the repo (db/custom.db). Scores reset on
       # each fresh deploy since Render's filesystem is ephemeral on free.
       - key: DATABASE_URL
