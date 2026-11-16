@@ -204,8 +204,10 @@ export function GameHUD() {
         </Button>
       </div>
 
-      {/* Bottom-left: total strokes + view label + difficulty (no clipping) */}
-      <div className="pointer-events-none absolute bottom-4 left-3 z-20 flex flex-col gap-1.5 sm:left-4">
+      {/* Bottom-left: total strokes + view label + difficulty.
+          Vertical stack, pills sized to their content and left-aligned so
+          they never overlap each other. */}
+      <div className="pointer-events-none absolute bottom-4 left-3 z-20 flex flex-col items-start gap-1.5 sm:left-4">
         <Badge variant="secondary" className="gap-1 rounded-full px-3 py-1.5 shadow-lg">
           <Trophy className="h-3.5 w-3.5" /> Total {totalStrokes}
         </Badge>
