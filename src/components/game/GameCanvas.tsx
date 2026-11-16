@@ -30,7 +30,7 @@ function Scene({ ballRef }: SceneProps) {
       <CameraRig ballRef={ballRef} />
       <Course course={course} />
       <Ball ballRef={ballRef} course={course} levelIndex={currentLevelIndex} />
-      <AimLine ballRef={ballRef} />
+      <AimLine ballRef={ballRef} course={course} />
     </>
   );
 }
