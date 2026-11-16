@@ -121,8 +121,10 @@ function WaterHazard({
   });
   return (
     <group position={pos}>
-      {/* water body */}
-      <mesh position={[0, -0.05, 0]} receiveShadow>
+      {/* water body — top sits at +0.11, just above the fairway plane
+          (0.102), so the hazard reads as blue water instead of being
+          buried under the grass */}
+      <mesh position={[0, 0.05, 0]} receiveShadow>
         <boxGeometry args={[size[0], 0.12, size[1]]} />
         <meshStandardMaterial
           color={color ?? "#0c4a6e"}
@@ -135,7 +137,7 @@ function WaterHazard({
         />
       </mesh>
       {/* reflective surface */}
-      <mesh ref={ref} position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh ref={ref} position={[0, 0.11, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[size[0], size[1]]} />
         <meshStandardMaterial
           color="#38bdf8"
@@ -148,7 +150,7 @@ function WaterHazard({
         />
       </mesh>
       {/* ripple ring */}
-      <mesh ref={ref2} position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh ref={ref2} position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.2, 0.35, 24]} />
         <meshBasicMaterial color="#bae6fd" transparent opacity={0.3} />
       </mesh>
@@ -437,25 +439,29 @@ function Conveyor({ cv }: { cv: ConveyorDef }) {
       map.offset.y -= cv.speed * delta * 0.3;
     }
   });
+  // Belt top sits just above the fairway plane (0.102) so the conveyor
+  // reads as a belt instead of being buried under the grass (it used to
+  // top out at 0.04 and only its side rails showed).
+  const BELT_TOP = 0.11;
   return (
     <group position={cv.pos}>
       {/* belt base */}
-      <mesh ref={stripeRef} receiveShadow position={[0, cv.size[1] / 2, 0]}>
+      <mesh ref={stripeRef} receiveShadow position={[0, BELT_TOP - cv.size[1] / 2, 0]}>
         <boxGeometry args={[cv.size[0], cv.size[1], cv.size[2]]} />
         <meshStandardMaterial map={tex} roughness={0.7} metalness={0.2} />
       </mesh>
       {/* side rails */}
-      <mesh position={[-cv.size[0] / 2 - 0.05, cv.size[1] + 0.05, 0]} castShadow>
+      <mesh position={[-cv.size[0] / 2 - 0.05, BELT_TOP + 0.05, 0]} castShadow>
         <boxGeometry args={[0.1, 0.12, cv.size[2]]} />
         <meshStandardMaterial color="#5b4636" roughness={0.8} />
       </mesh>
-      <mesh position={[cv.size[0] / 2 + 0.05, cv.size[1] + 0.05, 0]} castShadow>
+      <mesh position={[cv.size[0] / 2 + 0.05, BELT_TOP + 0.05, 0]} castShadow>
         <boxGeometry args={[0.1, 0.12, cv.size[2]]} />
         <meshStandardMaterial color="#5b4636" roughness={0.8} />
       </mesh>
       {/* direction arrow indicator on top */}
       <mesh
-        position={[0, cv.size[1] + 0.06, 0]}
+        position={[0, BELT_TOP + 0.06, 0]}
         rotation={[-Math.PI / 2, 0, cv.speed > 0 ? Math.PI : 0]}
       >
         <coneGeometry args={[0.18, 0.3, 4]} />
@@ -483,13 +489,15 @@ export function Course({ course }: { course: CourseDef }) {
       {/* Fairway top surface with mowing-stripe texture */}
       <FairwaySurface width={bounds.width} length={bounds.length} accent={course.accent} />
       {/* Lighter green ring around hole (the "green") — sits on the hole's
-          surface height, so elevated holes (Sky Terraces) render correctly. */}
-      <mesh position={[course.holePos[0], course.holePos[1] + 0.106, course.holePos[2]]} receiveShadow>
+          surface height, so elevated holes (Sky Terraces) render correctly.
+          Laid flat: circleGeometry is vertical by default, which rendered
+          this as a green dome behind the cup. */}
+      <mesh position={[course.holePos[0], course.holePos[1] + 0.106, course.holePos[2]]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <circleGeometry args={[1.6, 36]} />
         <meshStandardMaterial color="#5a9a48" roughness={0.75} />
       </mesh>
-      {/* Tee marker pad */}
-      <mesh position={[course.teePos[0], 0.106, course.teePos[2]]} receiveShadow>
+      {/* Tee marker pad — also laid flat (was a vertical disc) */}
+      <mesh position={[course.teePos[0], 0.106, course.teePos[2]]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <circleGeometry args={[0.5, 24]} />
         <meshStandardMaterial color="#9ca3af" roughness={0.7} />
       </mesh>
